@@ -13,7 +13,7 @@
     header h1 { margin:0; font-size:18px; }
     main { padding:12px; max-width:960px; margin:0 auto; }
     .card { background:white; border-radius:12px; padding:14px; margin-bottom:12px; box-shadow: 0 1px 3px rgba(0,0,0,0.07); }
-    .grid { display:grid; grid-template-columns: 1fr 170px; gap:10px 14px; align-items:center; }
+    .grid { display:grid; grid-template-columns: 1fr 180px; gap:10px 14px; align-items:center; }
     label { font-weight:700; font-size:15px; }
     .unit { color:var(--muted); font-size:12px; display:block; }
     input[type="number"], input[type="text"] { width:100%; padding:12px; font-size:18px; border:1px solid #d1d5db; border-radius:10px; }
@@ -96,8 +96,16 @@
 
         <label>Precio venta por caja (opcional) <span class="unit">US$/caja</span></label>
         <input type="text" id="precio_usd_caja" inputmode="decimal" pattern="[0-9]+([\\.,][0-9]+)?" placeholder="Ej: 31 o 27,7">
+
+        <label>Precio descarte (mercado nacional) <span class="unit">CLP/kg</span></label>
+        <input type="number" id="precio_desc" step="any" min="0" inputmode="decimal" placeholder="Ej: 120">
       </div>
-      <div class="subtle">Fórmulas: Kg netos = Q×kg/caja; Kg brutos = Kg netos / (1 − merma); Fruta = Kg brutos×CLP/kg; Packing = Kg netos×CLP/kg; <strong>Pallet = pallet + huincha + esquineros + tapa</strong>.</div>
+      <div class="subtle">
+        Fórmulas: Kg netos = Q×kg/caja; Kg brutos = Kg netos / (1 − merma); Fruta = Kg brutos×CLP/kg; Packing = Kg netos×CLP/kg;
+        <strong>Pallet = pallet + huincha + esquineros + tapa</strong>;
+        <strong>Kg descarte = Kg brutos − Kg netos</strong>;
+        <strong>Ingreso descarte = Precio descarte × Kg descarte</strong>.
+      </div>
     </div>
 
     <div class="card" id="resultCard">
@@ -105,6 +113,8 @@
       <div class="result-row"><span class="res-label">Cajas por contenedor (Q)</span><span class="res-value" id="r_q">—</span></div>
       <div class="result-row"><span class="res-label">Kg netos empacados</span><span class="res-value" id="r_kg_net">—</span></div>
       <div class="result-row"><span class="res-label">Kg brutos requeridos de fruta</span><span class="res-value" id="r_kg_bruto">—</span></div>
+      <div class="result-row"><span class="res-label">Kg descarte (venta local)</span><span class="res-value" id="r_kg_desc">—</span></div>
+      <div class="result-row"><span class="res-label">Ingreso descarte (CLP)</span><span class="res-value" id="r_ing_desc">—</span></div>
       <div class="result-row"><span class="res-label">Costo fruta (CLP)</span><span class="res-value" id="r_costo_fruta">—</span></div>
       <div class="result-row"><span class="res-label">Packing (CLP)</span><span class="res-value" id="r_costo_packing">—</span></div>
       <div class="result-row"><span class="res-label">Insumos caja (CLP)</span><span class="res-value" id="r_insumos_caja">—</span></div>
@@ -121,13 +131,13 @@
     </div>
 
   </main>
-  <div class="footer">Funciona offline. Tus datos no salen del dispositivo. — <strong>v3.3</strong></div>
+  <div class="footer">Funciona offline. Tus datos no salen del dispositivo. — <strong>v3.4</strong></div>
 
   <script>
     const $ = (id) => document.getElementById(id);
     const inputs = [
       'tc','pallets','cajas_por_pallet','kg_por_caja','merma_pct','fruta_kg','packing_kg','caja_x',
-      'pallet_unit','huincha_pal','esquin_pal','tapa_pal','flete_cp','flete_pp','flete_mar_usd','precio_usd_caja'
+      'pallet_unit','huincha_pal','esquin_pal','tapa_pal','flete_cp','flete_pp','flete_mar_usd','precio_usd_caja','precio_desc'
     ];
     const fmtCLP = (n) => isNaN(n) ? '—' : n.toLocaleString('es-CL', {style:'currency', currency:'CLP', maximumFractionDigits:0});
     const fmtNum = (n, d=2) => isNaN(n) ? '—' : n.toLocaleString('es-CL', {maximumFractionDigits:d});
@@ -171,6 +181,7 @@
       const flete_pp = read('flete_pp');
       const flete_mar_usd = read('flete_mar_usd');
       const precio_usd_caja = read('precio_usd_caja');
+      const precio_desc = read('precio_desc');
 
       const warn = (msg) => { const el = document.getElementById('warn'); if (!msg) { el.style.display='none'; el.textContent=''; } else { el.style.display='block'; el.textContent = msg; } };
       let warnMsg = '';
@@ -180,12 +191,17 @@
       const Q = pallets * cajas_pallet;
       const kg_net = Q * kg_caja;
       const kg_bruto = (1 - merma) > 0 ? kg_net / (1 - merma) : NaN;
+      const kg_desc = (!isNaN(kg_bruto) && !isNaN(kg_net) && kg_bruto >= kg_net) ? (kg_bruto - kg_net) : 0;
+
+      const ingreso_desc = kg_desc * precio_desc;
+
       const costo_fruta = isNaN(kg_bruto) ? NaN : kg_bruto * fruta;
       const costo_packing = kg_net * packing;
       const costo_insumos_caja = Q * caja;
       const costo_pallets = pallets * (pallet_unit + huincha + esquineros + tapa);
       const fletes_int = flete_cp + flete_pp;
       const flete_mar_clp = flete_mar_usd * tc;
+
       const total = [costo_fruta, costo_packing, costo_insumos_caja, costo_pallets, fletes_int, flete_mar_clp].some(isNaN) ? NaN :
                     (costo_fruta + costo_packing + costo_insumos_caja + costo_pallets + fletes_int + flete_mar_clp);
 
@@ -193,15 +209,17 @@
       const costo_xkg = (kg_net>0 && !isNaN(total)) ? total / kg_net : NaN;
 
       const precio_clp_caja = (!isNaN(precio_usd_caja) && precio_usd_caja>0 && tc>0) ? precio_usd_caja * tc : NaN;
-      const ingreso_total = (!isNaN(precio_clp_caja) && Q>0) ? precio_clp_caja * Q : NaN;
+      const ingreso_total = (!isNaN(precio_clp_caja) && Q>0) ? precio_clp_caja * Q : 0;
       const margen_caja = (!isNaN(precio_clp_caja) && !isNaN(costo_xcaja)) ? (precio_clp_caja - costo_xcaja) : NaN;
-      const margen_total = (!isNaN(ingreso_total) && !isNaN(total)) ? (ingreso_total - total) : NaN;
+      const margen_total = (!isNaN(total)) ? (ingreso_total + ingreso_desc - total) : NaN;
 
-      const breakeven_usd = (!isNaN(costo_xcaja) && tc>0) ? (costo_xcaja / tc) : NaN;
+      const breakeven_usd = (Q>0 && tc>0 && !isNaN(total)) ? ((total - ingreso_desc) / Q) / tc : NaN;
 
       document.getElementById('r_q').textContent = isNaN(Q) ? '—' : fmtNum(Q,0);
       document.getElementById('r_kg_net').textContent = isNaN(kg_net) ? '—' : fmtNum(kg_net,0);
       document.getElementById('r_kg_bruto').textContent = isNaN(kg_bruto) ? '—' : fmtNum(kg_bruto,0);
+      document.getElementById('r_kg_desc').textContent = isNaN(kg_desc) ? '—' : fmtNum(kg_desc,0);
+      document.getElementById('r_ing_desc').textContent = isNaN(ingreso_desc) ? '—' : fmtCLP(ingreso_desc);
       document.getElementById('r_costo_fruta').textContent = isNaN(costo_fruta) ? '—' : fmtCLP(costo_fruta);
       document.getElementById('r_costo_packing').textContent = isNaN(costo_packing) ? '—' : fmtCLP(costo_packing);
       document.getElementById('r_insumos_caja').textContent = isNaN(costo_insumos_caja) ? '—' : fmtCLP(costo_insumos_caja);
@@ -221,14 +239,14 @@
       if (!isNaN(margen_total)) { card.classList.add(margen_total >= 0 ? 'ok' : 'bad'); }
 
       const data = {}; inputs.forEach(n => data[n] = document.getElementById(n).value);
-      localStorage.setItem('calcCont_v3_3', JSON.stringify(data));
+      localStorage.setItem('calcCont_v3_4', JSON.stringify(data));
 
       warn(warnMsg);
     }
 
     (function init(){
       if ('serviceWorker' in navigator) { navigator.serviceWorker.register('./sw.js'); }
-      const data = localStorage.getItem('calcCont_v3_3');
+      const data = localStorage.getItem('calcCont_v3_4');
       if (data) { try { const o = JSON.parse(data); inputs.forEach(n => { if (o[n] !== undefined) document.getElementById(n).value = o[n]; }); } catch {} }
       inputs.forEach(id => document.getElementById(id).addEventListener('input', compute));
       document.getElementById('btnReset').addEventListener('click', () => { inputs.forEach(id => document.getElementById(id).value=''); compute(); });

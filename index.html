@@ -4,7 +4,6 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Costo Contenedor — Calculadora</title>
-  <link rel="apple-touch-icon" href="Apple.png">
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#0b7a75">
   <style>
@@ -14,7 +13,7 @@
     header h1 { margin:0; font-size:18px; }
     main { padding:12px; max-width:960px; margin:0 auto; }
     .card { background:white; border-radius:12px; padding:14px; margin-bottom:12px; box-shadow: 0 1px 3px rgba(0,0,0,0.07); }
-    .grid { display:grid; grid-template-columns: 1fr 160px; gap:10px 14px; align-items:center; }
+    .grid { display:grid; grid-template-columns: 1fr 170px; gap:10px 14px; align-items:center; }
     label { font-weight:700; font-size:15px; }
     .unit { color:var(--muted); font-size:12px; display:block; }
     input[type="number"], input[type="text"] { width:100%; padding:12px; font-size:18px; border:1px solid #d1d5db; border-radius:10px; }
@@ -39,7 +38,7 @@
   <header><h1>Calculadora — Costo por Contenedor</h1></header>
   <main>
     <div class="card">
-      <div class="hint">Llena solo los números. Acepta <strong>coma o punto</strong> como decimal. Los datos se guardan en este teléfono.</div>
+      <div class="hint">Llena solo los números. Acepta coma o punto como decimal donde corresponda. Los datos se guardan en este teléfono.</div>
       <div class="btns">
         <button id="btnReset" class="secondary">Limpiar</button>
         <button id="btnShare" class="secondary">Compartir</button>
@@ -60,10 +59,10 @@
         <input type="number" id="cajas_por_pallet" step="1" min="0" inputmode="numeric" placeholder="Ej: 80">
 
         <label>Kg por caja (packed) <span class="unit">kg/caja</span></label>
-        <input type="text" id="kg_por_caja" inputmode="decimal" pattern="[0-9]+([\.,][0-9]+)?" placeholder="Ej: 18 o 18,5">
+        <input type="text" id="kg_por_caja" inputmode="decimal" pattern="[0-9]+([\\.,][0-9]+)?" placeholder="Ej: 18 o 18,5">
 
         <label>Merma del campo al packing <span class="unit">%</span></label>
-        <input type="text" id="merma_pct" inputmode="decimal" pattern="[0-9]+([\.,][0-9]+)?" placeholder="Ej: 10 o 10,5">
+        <input type="text" id="merma_pct" inputmode="decimal" pattern="[0-9]+([\\.,][0-9]+)?" placeholder="Ej: 10 o 10,5">
 
         <label>Fruta <span class="unit">CLP/kg</span></label>
         <input type="number" id="fruta_kg" step="any" min="0" inputmode="decimal" placeholder="Ej: 350">
@@ -83,6 +82,9 @@
         <label>Esquineros <span class="unit">CLP/pallet</span></label>
         <input type="number" id="esquin_pal" step="any" min="0" inputmode="decimal" placeholder="Ej: 200">
 
+        <label>Tapa <span class="unit">CLP/pallet</span></label>
+        <input type="number" id="tapa_pal" step="any" min="0" inputmode="decimal" placeholder="Ej: 500">
+
         <label>Flete Campo→Packing <span class="unit">CLP/cont</span></label>
         <input type="number" id="flete_cp" step="any" min="0" inputmode="decimal" placeholder="Ej: 600000">
 
@@ -93,9 +95,9 @@
         <input type="number" id="flete_mar_usd" step="any" min="0" inputmode="decimal" placeholder="Ej: 5000">
 
         <label>Precio venta por caja (opcional) <span class="unit">US$/caja</span></label>
-        <input type="text" id="precio_usd_caja" inputmode="decimal" pattern="[0-9]+([\.,][0-9]+)?" placeholder="Ej: 31 o 27,7">
+        <input type="text" id="precio_usd_caja" inputmode="decimal" pattern="[0-9]+([\\.,][0-9]+)?" placeholder="Ej: 31 o 27,7">
       </div>
-      <div class="subtle">Fórmulas: Kg netos = Q×kg/caja; Kg brutos = Kg netos / (1 − merma); Fruta = Kg brutos×CLP/kg; Packing = Kg netos×CLP/kg.</div>
+      <div class="subtle">Fórmulas: Kg netos = Q×kg/caja; Kg brutos = Kg netos / (1 − merma); Fruta = Kg brutos×CLP/kg; Packing = Kg netos×CLP/kg; <strong>Pallet = pallet + huincha + esquineros + tapa</strong>.</div>
     </div>
 
     <div class="card" id="resultCard">
@@ -106,7 +108,7 @@
       <div class="result-row"><span class="res-label">Costo fruta (CLP)</span><span class="res-value" id="r_costo_fruta">—</span></div>
       <div class="result-row"><span class="res-label">Packing (CLP)</span><span class="res-value" id="r_costo_packing">—</span></div>
       <div class="result-row"><span class="res-label">Insumos caja (CLP)</span><span class="res-value" id="r_insumos_caja">—</span></div>
-      <div class="result-row"><span class="res-label">Pallets (CLP)</span><span class="res-value" id="r_costo_pallets">—</span></div>
+      <div class="result-row"><span class="res-label">Pallets (incl. tapa) (CLP)</span><span class="res-value" id="r_costo_pallets">—</span></div>
       <div class="result-row"><span class="res-label">Fletes internos (CLP)</span><span class="res-value" id="r_fletes_int">—</span></div>
       <div class="result-row"><span class="res-label">Flete marítimo (CLP)</span><span class="res-value" id="r_flete_mar">—</span></div>
       <div class="result-row"><span class="res-label">Costo TOTAL contenedor</span><span class="res-value" id="r_total">—</span></div>
@@ -119,13 +121,13 @@
     </div>
 
   </main>
-  <div class="footer">Funciona offline. Tus datos no salen del dispositivo. — <strong>v3.2</strong></div>
+  <div class="footer">Funciona offline. Tus datos no salen del dispositivo. — <strong>v3.3</strong></div>
 
   <script>
     const $ = (id) => document.getElementById(id);
     const inputs = [
       'tc','pallets','cajas_por_pallet','kg_por_caja','merma_pct','fruta_kg','packing_kg','caja_x',
-      'pallet_unit','huincha_pal','esquin_pal','flete_cp','flete_pp','flete_mar_usd','precio_usd_caja'
+      'pallet_unit','huincha_pal','esquin_pal','tapa_pal','flete_cp','flete_pp','flete_mar_usd','precio_usd_caja'
     ];
     const fmtCLP = (n) => isNaN(n) ? '—' : n.toLocaleString('es-CL', {style:'currency', currency:'CLP', maximumFractionDigits:0});
     const fmtNum = (n, d=2) => isNaN(n) ? '—' : n.toLocaleString('es-CL', {maximumFractionDigits:d});
@@ -137,7 +139,7 @@
       if (s.indexOf(',') >= 0 && s.indexOf('.') >= 0) {
         const lastComma = s.lastIndexOf(',');
         const lastDot = s.lastIndexOf('.');
-        if (lastComma > lastDot) { s = s.replace(/\./g, '').replace(',', '.'); }
+        if (lastComma > lastDot) { s = s.replace(/\\./g, '').replace(',', '.'); }
         else { s = s.replace(/,/g, ''); }
       } else if (s.indexOf(',') >= 0) {
         s = s.replace(',', '.');
@@ -164,6 +166,7 @@
       const pallet_unit = read('pallet_unit');
       const huincha = read('huincha_pal');
       const esquineros = read('esquin_pal');
+      const tapa = read('tapa_pal');
       const flete_cp = read('flete_cp');
       const flete_pp = read('flete_pp');
       const flete_mar_usd = read('flete_mar_usd');
@@ -180,7 +183,7 @@
       const costo_fruta = isNaN(kg_bruto) ? NaN : kg_bruto * fruta;
       const costo_packing = kg_net * packing;
       const costo_insumos_caja = Q * caja;
-      const costo_pallets = pallets * (pallet_unit + huincha + esquineros);
+      const costo_pallets = pallets * (pallet_unit + huincha + esquineros + tapa);
       const fletes_int = flete_cp + flete_pp;
       const flete_mar_clp = flete_mar_usd * tc;
       const total = [costo_fruta, costo_packing, costo_insumos_caja, costo_pallets, fletes_int, flete_mar_clp].some(isNaN) ? NaN :
@@ -218,14 +221,14 @@
       if (!isNaN(margen_total)) { card.classList.add(margen_total >= 0 ? 'ok' : 'bad'); }
 
       const data = {}; inputs.forEach(n => data[n] = document.getElementById(n).value);
-      localStorage.setItem('calcCont_v3_2', JSON.stringify(data));
+      localStorage.setItem('calcCont_v3_3', JSON.stringify(data));
 
       warn(warnMsg);
     }
 
     (function init(){
       if ('serviceWorker' in navigator) { navigator.serviceWorker.register('./sw.js'); }
-      const data = localStorage.getItem('calcCont_v3_2');
+      const data = localStorage.getItem('calcCont_v3_3');
       if (data) { try { const o = JSON.parse(data); inputs.forEach(n => { if (o[n] !== undefined) document.getElementById(n).value = o[n]; }); } catch {} }
       inputs.forEach(id => document.getElementById(id).addEventListener('input', compute));
       document.getElementById('btnReset').addEventListener('click', () => { inputs.forEach(id => document.getElementById(id).value=''); compute(); });

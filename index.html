@@ -206,7 +206,7 @@
                     (costo_fruta + costo_packing + costo_insumos_caja + costo_pallets + fletes_int + flete_mar_clp);
 
       const costo_xcaja = (Q>0 && !isNaN(total)) ? total / Q : NaN;
-      const costo_xkg = (kg_net>0 && !isNaN(total)) ? total / kg_net : NaN;
+      const costo_xkg = (kg_net>0 && !isNaN(total)) ? total / kg_bruto : NaN;
 
       const precio_clp_caja = (!isNaN(precio_usd_caja) && precio_usd_caja>0 && tc>0) ? precio_usd_caja * tc : NaN;
       const ingreso_total = (!isNaN(precio_clp_caja) && Q>0) ? precio_clp_caja * Q : 0;

@@ -245,15 +245,30 @@
     }
 
     (function init(){
-      if ('serviceWorker' in navigator) { navigator.serviceWorker.register('./sw.js'); }
-      const data = localStorage.getItem('calcCont_v3_4');
-      if (data) { try { const o = JSON.parse(data); inputs.forEach(n => { if (o[n] !== undefined) document.getElementById(n).value = o[n]; }); } catch {} }
+      if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.register('./sw.js?v=39');
+      }
+      const data = localStorage.getItem('calcCont_v3_8');
+      if (data) {
+        try {
+          const o = JSON.parse(data);
+          inputs.forEach(n => {
+            if (o[n] !== undefined) document.getElementById(n).value = o[n];
+          });
+        } catch {}
+      }
       inputs.forEach(id => document.getElementById(id).addEventListener('input', compute));
-      document.getElementById('btnReset').addEventListener('click', () => { inputs.forEach(id => document.getElementById(id).value=''); compute(); });
+      document.getElementById('btnReset').addEventListener('click', () => {
+        inputs.forEach(id => { document.getElementById(id).value=''; });
+        compute();
+      });
       document.getElementById('btnShare').addEventListener('click', async () => {
         const txt = document.getElementById('resultCard').innerText;
-        if (navigator.share) { try { await navigator.share({title:'Costo Contenedor', text:txt}); } catch(e){} }
-        else { alert('Compartir no disponible. Copia y pega los resultados.'); }
+        if (navigator.share) {
+          try { await navigator.share({title:'Costo Contenedor', text:txt}); } catch(e){}
+        } else {
+          alert('Compartir no disponible. Copia y pega los resultados.');
+        }
       });
       compute();
     })();
